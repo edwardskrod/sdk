@@ -61,6 +61,10 @@ namespace Microsoft.NET.TestFramework.ProjectConstruction
 
         public Dictionary<string, string> AdditionalItems { get; } = new Dictionary<string, string>();
 
+        public List<TestItemSpec> AdditionalItemSpecs { get; } = new();
+
+        public string TargetSubDirectory { get; set; }
+
         public IEnumerable<string> TargetFrameworkIdentifiers
         {
             get
@@ -102,7 +106,10 @@ namespace Microsoft.NET.TestFramework.ProjectConstruction
 
         internal void Create(TestAsset targetTestAsset, string testProjectsSourceFolder, string targetExtension = ".csproj")
         {
-            string targetFolder = Path.Combine(targetTestAsset.Path, this.Name);
+            string targetFolder = TargetSubDirectory is null ?
+                Path.Combine(targetTestAsset.Path, this.Name) :
+                Path.Combine(targetTestAsset.Path, TargetSubDirectory, this.Name);
+
             Directory.CreateDirectory(targetFolder);
 
             string targetProjectPath = Path.Combine(targetFolder, this.Name + targetExtension);
@@ -234,6 +241,32 @@ namespace Microsoft.NET.TestFramework.ProjectConstruction
                         ns + additionalItem.Key, 
                         new XAttribute("Include", additionalItem.Value)));
                 }
+            }
+
+            foreach (var additionalItem in AdditionalItemSpecs)
+            {
+                var additionalItemGroup = projectXml.Root.Elements(ns + "ItemGroup").FirstOrDefault();
+                if (additionalItemGroup == null)
+                {
+                    additionalItemGroup = new XElement(ns + "ItemGroup");
+                    projectXml.Root.Add(packageReferenceItemGroup);
+                }
+
+                var element = new XElement(
+                    ns + additionalItem.Name,
+                    new XAttribute("Include", additionalItem.Include));
+
+                if (additionalItem.Exclude is not null)
+                {
+                    element.Add(new XAttribute("Exclude", additionalItem.Exclude));
+                }
+
+                foreach (var attribute in additionalItem.Attributes)
+                {
+                    element.Add(new XAttribute(attribute.Key, attribute.Value));
+                }
+
+                additionalItemGroup.Add(element);
             }
 
             if (this.IsExe && !this.IsWinExe)
