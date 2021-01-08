@@ -30,6 +30,8 @@ namespace Microsoft.NET.TestFramework
 
         public string SdkVersion { get; set; }
 
+        public string RepoRoot { get; private set; }
+
         public ToolsetInfo ToolsetUnderTest { get; set; }
 
         private static TestContext _current;
@@ -124,6 +126,8 @@ namespace Microsoft.NET.TestFramework
                 //    repoConfiguration = new DirectoryInfo(AppContext.BaseDirectory).Name;
                 //}
             }
+
+            testContext.RepoRoot = repoRoot;
 
             if (!string.IsNullOrEmpty(commandLine.TestExecutionDirectory))
             {
